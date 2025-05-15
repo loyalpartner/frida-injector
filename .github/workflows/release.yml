@@ -77,11 +77,10 @@ jobs:
           sha256sum frida-injector_linux_amd64 > frida-injector_linux_amd64.sha256
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v1
         with:
           name: frida-injector-artifacts
           path: build/
-          retention-days: 1
 
   create-release:
     name: Create Release
@@ -91,7 +90,7 @@ jobs:
       contents: write
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v1
         with:
           name: frida-injector-artifacts
           path: artifacts
