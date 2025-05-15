@@ -3,7 +3,10 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
+
+permissions:
+  contents: write
 
 jobs:
   build-linux:
@@ -31,28 +34,28 @@ jobs:
           FRIDA_VERSION="16.3.1"
           FRIDA_DEVKIT="frida-core-devkit-${FRIDA_VERSION}-linux-x86_64.tar.xz"
           FRIDA_URL="https://github.com/frida/frida/releases/download/${FRIDA_VERSION}/${FRIDA_DEVKIT}"
-          
+
           echo "Downloading Frida Core devkit ${FRIDA_VERSION}..."
           mkdir -p /tmp/frida-devkit
           wget -q $FRIDA_URL -O /tmp/frida-devkit/${FRIDA_DEVKIT}
-          
+
           cd /tmp/frida-devkit
           tar -xf ${FRIDA_DEVKIT}
-          
+
           # Copy header to include directory
           mkdir -p /usr/local/include/frida
           cp frida-core.h /usr/local/include/frida/
-          
+
           # Create symlink for compatibility
           ln -sf /usr/local/include/frida/frida-core.h /usr/local/include/frida-core.h
-          
+
           # Copy library to lib directory
           mkdir -p /usr/local/lib
           cp libfrida-core.a /usr/local/lib/
-          
+
           # Refresh linker cache
           ldconfig
-          
+
           echo "Frida Core devkit installed successfully"
 
       - name: Checkout code
@@ -76,37 +79,17 @@ jobs:
           sha256sum frida-injector_linux_amd64.tar.gz > frida-injector_linux_amd64.tar.gz.sha256
           sha256sum frida-injector_linux_amd64 > frida-injector_linux_amd64.sha256
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: frida-injector-artifacts
-          path: build/
-
-  create-release:
-    name: Create Release
-    needs: build-linux
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v1
-        with:
-          name: frida-injector-artifacts
-          path: artifacts
-
-      - name: Display structure of downloaded files
-        run: ls -la artifacts
+      - name: Install release dependencies
+        run: apt-get install -y curl jq
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/frida-injector_linux_amd64
-            artifacts/frida-injector_linux_amd64.tar.gz
-            artifacts/frida-injector_linux_amd64.tar.gz.sha256
-            artifacts/frida-injector_linux_amd64.sha256
+            build/frida-injector_linux_amd64
+            build/frida-injector_linux_amd64.tar.gz
+            build/frida-injector_linux_amd64.tar.gz.sha256
+            build/frida-injector_linux_amd64.sha256
           generate_release_notes: true
-          draft: false
-          prerelease: false
-          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
