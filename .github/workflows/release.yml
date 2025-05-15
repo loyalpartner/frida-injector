@@ -10,53 +10,33 @@ permissions:
 
 jobs:
   build-linux:
-    name: Build for Linux (Debian Buster)
+    name: Build for Linux
     runs-on: ubuntu-latest
     container:
       image: debian:buster
       env:
         DEBIAN_FRONTEND: noninteractive
     steps:
-      - name: Install Git and build dependencies
+      - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y build-essential git curl libglib2.0-dev wget xz-utils pkg-config
+          apt-get install -y build-essential git curl libglib2.0-dev wget xz-utils pkg-config curl jq
 
       - name: Install Go
         run: |
-          curl -L https://golang.org/dl/go1.21.0.linux-amd64.tar.gz -o go.tar.gz
-          tar -C /usr/local -xzf go.tar.gz
+          curl -L https://golang.org/dl/go1.21.0.linux-amd64.tar.gz | tar -C /usr/local -xz
           echo "PATH=$PATH:/usr/local/go/bin" >> $GITHUB_ENV
 
       - name: Install Frida Core devkit
         run: |
-          # Install specific Frida version required for the project
           FRIDA_VERSION="16.3.1"
           FRIDA_DEVKIT="frida-core-devkit-${FRIDA_VERSION}-linux-x86_64.tar.xz"
-          FRIDA_URL="https://github.com/frida/frida/releases/download/${FRIDA_VERSION}/${FRIDA_DEVKIT}"
-
-          echo "Downloading Frida Core devkit ${FRIDA_VERSION}..."
-          mkdir -p /tmp/frida-devkit
-          wget -q $FRIDA_URL -O /tmp/frida-devkit/${FRIDA_DEVKIT}
-
-          cd /tmp/frida-devkit
-          tar -xf ${FRIDA_DEVKIT}
-
-          # Copy header to include directory
-          mkdir -p /usr/local/include/frida
-          cp frida-core.h /usr/local/include/frida/
-
-          # Create symlink for compatibility
+          wget -q "https://github.com/frida/frida/releases/download/${FRIDA_VERSION}/${FRIDA_DEVKIT}" -O - | tar -xJ -C /tmp
+          mkdir -p /usr/local/include/frida /usr/local/lib
+          cp /tmp/frida-core.h /usr/local/include/frida/
           ln -sf /usr/local/include/frida/frida-core.h /usr/local/include/frida-core.h
-
-          # Copy library to lib directory
-          mkdir -p /usr/local/lib
-          cp libfrida-core.a /usr/local/lib/
-
-          # Refresh linker cache
+          cp /tmp/libfrida-core.a /usr/local/lib/
           ldconfig
-
-          echo "Frida Core devkit installed successfully"
 
       - name: Checkout code
         uses: actions/checkout@v3
@@ -76,11 +56,8 @@ jobs:
           go build -buildvcs=false -ldflags "-s -w" -o build/frida-injector_linux_amd64 .
           cd build
           tar -czvf frida-injector_linux_amd64.tar.gz frida-injector_linux_amd64
+          sha256sum frida-injector_linux_amd64{,.tar.gz} > frida-injector_linux_amd64.sha256
           sha256sum frida-injector_linux_amd64.tar.gz > frida-injector_linux_amd64.tar.gz.sha256
-          sha256sum frida-injector_linux_amd64 > frida-injector_linux_amd64.sha256
-
-      - name: Install release dependencies
-        run: apt-get install -y curl jq
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
