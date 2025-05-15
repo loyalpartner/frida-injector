@@ -68,7 +68,7 @@ jobs:
         run: |
           mkdir -p build
           go mod tidy
-          go build -ldflags "-s -w" -o build/frida-injector_linux_amd64 .
+          go build -buildvcs=false -ldflags "-s -w" -o build/frida-injector_linux_amd64 .
           cd build
           tar -czvf frida-injector_linux_amd64.tar.gz frida-injector_linux_amd64
           sha256sum frida-injector_linux_amd64.tar.gz > frida-injector_linux_amd64.tar.gz.sha256
